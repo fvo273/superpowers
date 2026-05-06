@@ -11,6 +11,26 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 **Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
 
+## Setup
+
+Before using this skill, configure OpenRouter:
+
+1. **API key:** set `OPENROUTER_API_KEY` in your environment (add to `.env` or shell profile).
+2. **Model config:** create `~/.claude/openrouter-models.json`:
+   ```json
+   {
+     "cheap": "deepseek/deepseek-v4-flash",
+     "standard": "deepseek/deepseek-v4-flash",
+     "capable": "deepseek/deepseek-v4-flash"
+   }
+   ```
+3. **Python dependency:** already declared in `pyproject.toml`. Run `uv sync` in the `skills/subagent-driven-development/` directory of your superpowers installation to install.
+4. **Note on model IDs:** verify that the model IDs in your config are currently available on OpenRouter — model slugs change over time.
+
+If either the API key or config file is missing, the skill stops immediately with an error and setup instructions. Customise models per role by editing the config file — any model available on OpenRouter that supports tool calling works.
+
+**Path convention:** In dispatch commands below, `[skill-base-dir]` refers to the `skills/subagent-driven-development/` directory of your superpowers installation (the directory containing this file).
+
 **Continuous execution:** Do not pause to check in with your human partner between tasks. Execute all tasks from the plan without stopping. The only reasons to stop are: BLOCKED status you cannot resolve, ambiguity that genuinely prevents progress, or all tasks complete. "Should I continue?" prompts and progress summaries waste their time — they asked you to execute the plan, so execute it.
 
 ## When to Use
@@ -88,18 +108,17 @@ digraph process {
 
 ## Model Selection
 
-Use the least powerful model that can handle each role to conserve cost and increase speed.
+Model roles are defined in `~/.claude/openrouter-models.json`. The three roles map to task complexity:
 
-**Mechanical implementation tasks** (isolated functions, clear specs, 1-2 files): use a fast, cheap model. Most implementation tasks are mechanical when the plan is well-specified.
+- **cheap** — mechanical tasks (isolated functions, clear specs, 1-2 files). Use for most implementer tasks.
+- **standard** — integration tasks (multi-file coordination, debugging). Use when the implementer touches many files.
+- **capable** — code quality review (architecture, design judgment, broad codebase understanding).
+- **standard** is correct for spec compliance review — it reads code and compares to spec, which does not require architectural judgment.
 
-**Integration and judgment tasks** (multi-file coordination, pattern matching, debugging): use a standard model.
-
-**Architecture, design, and review tasks**: use the most capable available model.
-
-**Task complexity signals:**
-- Touches 1-2 files with a complete spec → cheap model
-- Touches multiple files with integration concerns → standard model
-- Requires design judgment or broad codebase understanding → most capable model
+Task complexity signals:
+- Touches 1-2 files with a complete spec → `cheap`
+- Touches multiple files with integration concerns → `standard`
+- Requires design judgment or broad codebase understanding → `capable`
 
 ## Handling Implementer Status
 
@@ -119,17 +138,33 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 **Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
 
-## Prompt Templates
+## Dispatching Subagents via OpenRouter
 
-- `./implementer-prompt.md` - Dispatch implementer subagent
-- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
-- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+All subagents are dispatched through `openrouter_agent.py` using the Bash tool. The general pattern:
+
+1. Write the prompt to a temp file using the Write tool or a heredoc.
+2. Run the agent script from the skill directory:
+   ```bash
+   cd [skill-base-dir] && uv run openrouter_agent.py \
+     --model <role> \
+     --prompt-file /tmp/subagent-prompt.txt \
+     --working-dir <project-root>
+   ```
+3. Read stdout as the subagent's final report.
+
+See the prompt template files for full prompt content per role:
+- `./implementer-prompt.md` — role: `cheap` or `standard`
+- `./spec-reviewer-prompt.md` — role: `standard`
+- `./code-quality-reviewer-prompt.md` — role: `capable`
+
+On re-review after fixes, use the same role as the initial dispatch.
 
 ## Example Workflow
 
 ```
 You: I'm using Subagent-Driven Development to execute this plan.
 
+[Validate OpenRouter setup: check OPENROUTER_API_KEY is set + ~/.claude/openrouter-models.json exists]
 [Read plan file once: docs/superpowers/plans/feature-plan.md]
 [Extract all 5 tasks with full text and context]
 [Create TodoWrite with all tasks]

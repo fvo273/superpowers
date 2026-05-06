@@ -1,3 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
 .worktrees/
 .private-journal/
 .claude/
@@ -5,3 +8,4 @@
 node_modules/
 inspo
 triage/
+.env

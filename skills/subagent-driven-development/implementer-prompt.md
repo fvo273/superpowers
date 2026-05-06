@@ -3,9 +3,26 @@
 Use this template when dispatching an implementer subagent.
 
 ```
-Task tool (general-purpose):
-  description: "Implement Task N: [task name]"
-  prompt: |
+Bash tool — dispatch via OpenRouter:
+
+1. Write the prompt to a temp file:
+
+   Use the Write tool to create `/tmp/subagent-implementer-prompt.txt` with the prompt content below.
+
+2. Run the subagent — change `--model` based on task complexity:
+   - `cheap`: isolated functions, clear spec, 1-2 files
+   - `standard`: multi-file integration, debugging, coordination
+
+   ```bash
+   cd [skill-base-dir] && uv run openrouter_agent.py \
+     --model cheap \
+     --prompt-file /tmp/subagent-implementer-prompt.txt \
+     --working-dir [project-root]
+   ```
+
+3. Read stdout as the subagent's report.
+
+Prompt content:
     You are implementing Task N: [task name]
 
     ## Task Description
@@ -24,7 +41,7 @@ Task tool (general-purpose):
     - Dependencies or assumptions
     - Anything unclear in the task description
 
-    **Ask them now.** Raise any concerns before starting work.
+    **Do not proceed.** Report status NEEDS_CONTEXT and list your questions. The controller will provide answers and re-dispatch you.
 
     ## Your Job
 
@@ -38,8 +55,7 @@ Task tool (general-purpose):
 
     Work from: [directory]
 
-    **While you work:** If you encounter something unexpected or unclear, **ask questions**.
-    It's always OK to pause and clarify. Don't guess or make assumptions.
+    **While you work:** If you encounter something unexpected or unclear, stop and report NEEDS_CONTEXT with specific questions. Don't guess or make assumptions — your output is the only channel back to the controller.
 
     ## Code Organization
 

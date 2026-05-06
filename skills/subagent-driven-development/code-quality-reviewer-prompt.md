@@ -7,13 +7,30 @@ Use this template when dispatching a code quality reviewer subagent.
 **Only dispatch after spec compliance review passes.**
 
 ```
-Task tool (general-purpose):
-  Use template at requesting-code-review/code-reviewer.md
+Bash tool — dispatch via OpenRouter:
 
-  DESCRIPTION: [task summary, from implementer's report]
-  PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-  BASE_SHA: [commit before task]
-  HEAD_SHA: [current commit]
+1. Read the full content of `[skill-base-dir]/../requesting-code-review/code-reviewer.md` and use it as your prompt template.
+
+2. Write the filled-in prompt to a temp file:
+
+   Use the Write tool to create `/tmp/subagent-quality-reviewer-prompt.txt`.
+
+3. Run the subagent (use `capable` role):
+
+   ```bash
+   cd [skill-base-dir] && uv run openrouter_agent.py \
+     --model capable \
+     --prompt-file /tmp/subagent-quality-reviewer-prompt.txt \
+     --working-dir [project-root]
+   ```
+
+4. Read stdout as the reviewer's assessment.
+
+Fill in these fields in the prompt before writing the temp file:
+- `{DESCRIPTION}` — brief summary of what was built (from implementer's report)
+- `{PLAN_OR_REQUIREMENTS}` — task text or plan file path (e.g. `Task N from docs/superpowers/plans/...`)
+- `{BASE_SHA}` — commit before the task started
+- `{HEAD_SHA}` — current commit (after implementer's work)
 ```
 
 **In addition to standard code quality concerns, the reviewer should check:**
