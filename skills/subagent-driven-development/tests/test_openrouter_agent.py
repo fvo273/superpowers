@@ -137,7 +137,7 @@ class TestRunBash:
 
     def test_returns_exit_code_on_failure(self):
         result = run_bash("exit 42")
-        assert result
+        assert "42" in result
 
 
 class TestGlobFiles:
@@ -159,8 +159,5 @@ class TestGrepFiles:
     def test_finds_pattern_in_files(self, tmp_path):
         f = tmp_path / "code.py"
         f.write_text("def my_function():\n    pass\n")
-        result = grep_files("my_function", path=str(tmp_path))
-        # Result could be match output or error/notfound on systems without rg/grep
-        # Just verify the function doesn't crash
-        assert isinstance(result, str)
-        assert len(result) > 0
+        result = grep_files("my_function", path=str(tmp_path), file_pattern="*.py")
+        assert "my_function" in result

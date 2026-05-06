@@ -62,6 +62,7 @@ def resolve_model(config: dict, role: str) -> str:
 
 
 def read_file(path: str) -> str:
+    """Read a file and return its contents, or an error string on failure."""
     try:
         return Path(path).read_text(encoding="utf-8")
     except Exception as e:
@@ -73,7 +74,7 @@ def write_file(path: str, content: str) -> str:
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
-        return f"Written {len(content)} bytes to {path}"
+        return f"Written {len(content)} characters to {path}"
     except Exception as e:
         return f"Error writing file: {e}"
 
@@ -92,6 +93,7 @@ def edit_file(path: str, old_string: str, new_string: str) -> str:
 
 
 def run_bash(command: str, working_dir: str | None = None) -> str:
+    """Execute a shell command and return stdout/stderr output."""
     try:
         result = subprocess.run(
             command,
@@ -129,14 +131,16 @@ def grep_files(pattern: str, path: str = ".", file_pattern: str = "*") -> str:
             capture_output=True,
             text=True,
         )
-        if result.returncode == 0:
+        # rg exit code 1 means "no matches" — not an error
+        if result.returncode in (0, 1):
             return result.stdout or "(no matches)"
+        return f"Error: rg exited with code {result.returncode}"
     except FileNotFoundError:
         pass
 
     try:
         result = subprocess.run(
-            ["grep", "-rn", "--include", f"*{file_pattern}*", pattern, path],
+            ["grep", "-rn", f"--include={file_pattern}", pattern, path],
             capture_output=True,
             text=True,
         )
