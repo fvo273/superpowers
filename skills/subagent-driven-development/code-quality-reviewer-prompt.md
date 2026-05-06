@@ -26,7 +26,11 @@ Bash tool — dispatch via OpenRouter:
 
 4. Read stdout as the reviewer's assessment.
 
-Fill in the template fields:
+Fill in these fields in the prompt before writing the temp file:
+- `{DESCRIPTION}` — brief summary of what was built (from implementer's report)
+- `{PLAN_OR_REQUIREMENTS}` — task text or plan file path (e.g. `Task N from docs/superpowers/plans/...`)
+- `{BASE_SHA}` — commit before the task started
+- `{HEAD_SHA}` — current commit (after implementer's work)
 ```
 
 **In addition to standard code quality concerns, the reviewer should check:**

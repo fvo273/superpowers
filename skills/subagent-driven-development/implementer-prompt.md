@@ -9,7 +9,9 @@ Bash tool — dispatch via OpenRouter:
 
    Use the Write tool to create `/tmp/subagent-implementer-prompt.txt` with the prompt content below.
 
-2. Run the subagent (use `cheap` for mechanical tasks, `standard` for multi-file integration):
+2. Run the subagent — change `--model` based on task complexity:
+   - `cheap`: isolated functions, clear spec, 1-2 files
+   - `standard`: multi-file integration, debugging, coordination
 
    ```bash
    uv run skills/subagent-driven-development/openrouter_agent.py \
