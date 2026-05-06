@@ -161,3 +161,79 @@ class TestGrepFiles:
         f.write_text("def my_function():\n    pass\n")
         result = grep_files("my_function", path=str(tmp_path), file_pattern="*.py")
         assert "my_function" in result
+
+
+from unittest.mock import MagicMock, patch
+
+from openrouter_agent import execute_tool, run_agent
+
+
+class TestExecuteTool:
+    def test_dispatches_read_file(self, tmp_path):
+        f = tmp_path / "x.txt"
+        f.write_text("content")
+        result = execute_tool("read_file", {"path": str(f)}, str(tmp_path))
+        assert result == "content"
+
+    def test_dispatches_write_file(self, tmp_path):
+        path = str(tmp_path / "out.txt")
+        result = execute_tool("write_file", {"path": path, "content": "hello"}, str(tmp_path))
+        assert "Written" in result
+
+    def test_dispatches_unknown_tool(self, tmp_path):
+        result = execute_tool("nonexistent_tool", {}, str(tmp_path))
+        assert "Unknown tool" in result
+
+
+class TestRunAgent:
+    def _make_client(self, responses):
+        """Build a mock OpenAI client that returns responses in order."""
+        client = MagicMock()
+        completions = [self._make_response(r) for r in responses]
+        client.chat.completions.create.side_effect = completions
+        return client
+
+    def _make_response(self, spec):
+        """spec: {"content": str} or {"tool_calls": [(name, args_dict)]}"""
+        message = MagicMock()
+        if "tool_calls" in spec:
+            message.content = None
+            tcs = []
+            for name, args in spec["tool_calls"]:
+                tc = MagicMock()
+                tc.id = f"call_{name}"
+                tc.function.name = name
+                tc.function.arguments = json.dumps(args)
+                tcs.append(tc)
+            message.tool_calls = tcs
+        else:
+            message.content = spec["content"]
+            message.tool_calls = []
+        response = MagicMock()
+        response.choices[0].message = message
+        return response
+
+    def test_returns_content_when_no_tool_calls(self, tmp_path):
+        client = self._make_client([{"content": "Task complete."}])
+        result = run_agent(client, "some-model", "do the thing", str(tmp_path))
+        assert result == "Task complete."
+
+    def test_executes_tool_call_and_continues(self, tmp_path):
+        f = tmp_path / "data.txt"
+        f.write_text("file contents")
+        client = self._make_client([
+            {"tool_calls": [("read_file", {"path": str(f)})]},
+            {"content": "I read the file."},
+        ])
+        result = run_agent(client, "some-model", "read file", str(tmp_path))
+        assert result == "I read the file."
+        assert client.chat.completions.create.call_count == 2
+
+    def test_exits_on_max_iterations(self, tmp_path):
+        """Agent that never stops calling tools should exit after MAX_ITERATIONS."""
+        always_calls = {"tool_calls": [("run_bash", {"command": "echo loop"})]}
+        client = self._make_client([always_calls] * 60)
+        with patch("openrouter_agent.MAX_ITERATIONS", 3):
+            with pytest.raises(SystemExit) as exc:
+                run_agent(client, "some-model", "infinite loop", str(tmp_path))
+        assert exc.value.code == 1

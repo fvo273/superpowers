@@ -149,3 +149,161 @@ def grep_files(pattern: str, path: str = ".", file_pattern: str = "*") -> str:
         return "Error: ripgrep (rg) or grep not found in PATH"
     except Exception as e:
         return f"Error: {e}"
+
+
+TOOL_DEFINITIONS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "Read a file and return its contents",
+            "parameters": {
+                "type": "object",
+                "properties": {"path": {"type": "string", "description": "File path to read"}},
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_file",
+            "description": "Write content to a file (creates or overwrites)",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path to write"},
+                    "content": {"type": "string", "description": "Content to write"},
+                },
+                "required": ["path", "content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "edit_file",
+            "description": "Replace first occurrence of old_string with new_string in a file",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path to edit"},
+                    "old_string": {"type": "string", "description": "Exact string to replace"},
+                    "new_string": {"type": "string", "description": "Replacement string"},
+                },
+                "required": ["path", "old_string", "new_string"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "run_bash",
+            "description": "Execute a shell command and return stdout/stderr",
+            "parameters": {
+                "type": "object",
+                "properties": {"command": {"type": "string", "description": "Shell command to execute"}},
+                "required": ["command"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "glob_files",
+            "description": "Find files matching a glob pattern",
+            "parameters": {
+                "type": "object",
+                "properties": {"pattern": {"type": "string", "description": "Glob pattern e.g. **/*.py"}},
+                "required": ["pattern"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "grep_files",
+            "description": "Search file contents with regex",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pattern": {"type": "string", "description": "Regex pattern"},
+                    "path": {"type": "string", "description": "Directory or file to search (default: .)"},
+                    "file_pattern": {"type": "string", "description": "File glob filter (default: *)"},
+                },
+                "required": ["pattern"],
+            },
+        },
+    },
+]
+
+_TOOL_DISPATCH = {
+    "read_file": lambda args, wd: read_file(args["path"]),
+    "write_file": lambda args, wd: write_file(args["path"], args["content"]),
+    "edit_file": lambda args, wd: edit_file(args["path"], args["old_string"], args["new_string"]),
+    "run_bash": lambda args, wd: run_bash(args["command"], wd),
+    "glob_files": lambda args, wd: glob_files(args["pattern"], wd),
+    "grep_files": lambda args, wd: grep_files(args["pattern"], args.get("path", "."), args.get("file_pattern", "*")),
+}
+
+
+def execute_tool(name: str, args: dict, working_dir: str) -> str:
+    handler = _TOOL_DISPATCH.get(name)
+    if handler is None:
+        return f"Unknown tool: {name}"
+    return handler(args, working_dir)
+
+
+def run_agent(client, model: str, prompt: str, working_dir: str) -> str:
+    """Run an agentic loop until the model returns a final response."""
+    messages = [{"role": "user", "content": prompt}]
+
+    for _ in range(MAX_ITERATIONS):
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=TOOL_DEFINITIONS,
+            tool_choice="auto",
+        )
+        message = response.choices[0].message
+
+        assistant_msg: dict = {"role": "assistant", "content": message.content}
+        if message.tool_calls:
+            assistant_msg["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
+                for tc in message.tool_calls
+            ]
+        messages.append(assistant_msg)
+
+        if not message.tool_calls:
+            return message.content or ""
+
+        for tc in message.tool_calls:
+            result = execute_tool(tc.function.name, json.loads(tc.function.arguments), working_dir)
+            messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
+
+    print(f"ERROR: Reached max iterations ({MAX_ITERATIONS}) without completion.", file=sys.stderr)
+    sys.exit(1)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run a subagent task via OpenRouter")
+    parser.add_argument("--model", required=True, choices=list(VALID_ROLES), help="Model role: cheap, standard, or capable")
+    parser.add_argument("--prompt-file", required=True, help="Path to file containing the subagent prompt")
+    parser.add_argument("--working-dir", default=os.getcwd(), help="Working directory for bash commands (default: cwd)")
+    args = parser.parse_args()
+
+    api_key, config = load_config()
+    model = resolve_model(config, args.model)
+    prompt = Path(args.prompt_file).read_text(encoding="utf-8")
+
+    client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=api_key)
+    print(run_agent(client, model, prompt, args.working_dir))
+
+
+if __name__ == "__main__":
+    main()
