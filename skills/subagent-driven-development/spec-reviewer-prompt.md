@@ -5,9 +5,24 @@ Use this template when dispatching a spec compliance reviewer subagent.
 **Purpose:** Verify implementer built what was requested (nothing more, nothing less)
 
 ```
-Task tool (general-purpose):
-  description: "Review spec compliance for Task N"
-  prompt: |
+Bash tool — dispatch via OpenRouter:
+
+1. Write the prompt to a temp file:
+
+   Use the Write tool to create `/tmp/subagent-spec-reviewer-prompt.txt` with the prompt content below.
+
+2. Run the subagent (use `standard` role):
+
+   ```bash
+   uv run skills/subagent-driven-development/openrouter_agent.py \
+     --model standard \
+     --prompt-file /tmp/subagent-spec-reviewer-prompt.txt \
+     --working-dir [project-root]
+   ```
+
+3. Read stdout as the reviewer's verdict.
+
+Prompt content:
     You are reviewing whether an implementation matches its specification.
 
     ## What Was Requested

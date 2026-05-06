@@ -3,9 +3,24 @@
 Use this template when dispatching an implementer subagent.
 
 ```
-Task tool (general-purpose):
-  description: "Implement Task N: [task name]"
-  prompt: |
+Bash tool — dispatch via OpenRouter:
+
+1. Write the prompt to a temp file:
+
+   Use the Write tool to create `/tmp/subagent-implementer-prompt.txt` with the prompt content below.
+
+2. Run the subagent (use `cheap` for mechanical tasks, `standard` for multi-file integration):
+
+   ```bash
+   uv run skills/subagent-driven-development/openrouter_agent.py \
+     --model cheap \
+     --prompt-file /tmp/subagent-implementer-prompt.txt \
+     --working-dir [project-root]
+   ```
+
+3. Read stdout as the subagent's report.
+
+Prompt content:
     You are implementing Task N: [task name]
 
     ## Task Description
