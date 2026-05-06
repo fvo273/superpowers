@@ -3,7 +3,7 @@
 import json
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -163,8 +163,6 @@ class TestGrepFiles:
         assert "my_function" in result
 
 
-from unittest.mock import MagicMock, patch
-
 from openrouter_agent import execute_tool, run_agent
 
 
@@ -228,6 +226,11 @@ class TestRunAgent:
         result = run_agent(client, "some-model", "read file", str(tmp_path))
         assert result == "I read the file."
         assert client.chat.completions.create.call_count == 2
+        # Verify the second call received the tool result in the message history
+        second_call_messages = client.chat.completions.create.call_args_list[1][1]["messages"]
+        tool_messages = [m for m in second_call_messages if m.get("role") == "tool"]
+        assert len(tool_messages) == 1
+        assert "file contents" in tool_messages[0]["content"]
 
     def test_exits_on_max_iterations(self, tmp_path):
         """Agent that never stops calling tools should exit after MAX_ITERATIONS."""

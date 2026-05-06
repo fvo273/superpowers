@@ -267,7 +267,9 @@ def run_agent(client, model: str, prompt: str, working_dir: str) -> str:
         )
         message = response.choices[0].message
 
-        assistant_msg: dict = {"role": "assistant", "content": message.content}
+        assistant_msg: dict = {"role": "assistant"}
+        if message.content is not None:
+            assistant_msg["content"] = message.content
         if message.tool_calls:
             assistant_msg["tool_calls"] = [
                 {
@@ -292,7 +294,7 @@ def run_agent(client, model: str, prompt: str, working_dir: str) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a subagent task via OpenRouter")
-    parser.add_argument("--model", required=True, choices=list(VALID_ROLES), help="Model role: cheap, standard, or capable")
+    parser.add_argument("--model", required=True, choices=sorted(VALID_ROLES), help="Model role: cheap, standard, or capable")
     parser.add_argument("--prompt-file", required=True, help="Path to file containing the subagent prompt")
     parser.add_argument("--working-dir", default=os.getcwd(), help="Working directory for bash commands (default: cwd)")
     args = parser.parse_args()
