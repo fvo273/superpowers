@@ -24,9 +24,12 @@ Before using this skill, configure OpenRouter:
      "capable": "deepseek/deepseek-v4-flash"
    }
    ```
-3. **Python dependency:** already declared in `pyproject.toml`. Run `uv sync` in `skills/subagent-driven-development/` to install.
+3. **Python dependency:** already declared in `pyproject.toml`. Run `uv sync` in the `skills/subagent-driven-development/` directory of your superpowers installation to install.
+4. **Note on model IDs:** verify that the model IDs in your config are currently available on OpenRouter — model slugs change over time.
 
 If either the API key or config file is missing, the skill stops immediately with an error and setup instructions. Customise models per role by editing the config file — any model available on OpenRouter that supports tool calling works.
+
+**Path convention:** In dispatch commands below, `[skill-base-dir]` refers to the `skills/subagent-driven-development/` directory of your superpowers installation (the directory containing this file).
 
 **Continuous execution:** Do not pause to check in with your human partner between tasks. Execute all tasks from the plan without stopping. The only reasons to stop are: BLOCKED status you cannot resolve, ambiguity that genuinely prevents progress, or all tasks complete. "Should I continue?" prompts and progress summaries waste their time — they asked you to execute the plan, so execute it.
 
@@ -109,7 +112,8 @@ Model roles are defined in `~/.claude/openrouter-models.json`. The three roles m
 
 - **cheap** — mechanical tasks (isolated functions, clear specs, 1-2 files). Use for most implementer tasks.
 - **standard** — integration tasks (multi-file coordination, debugging). Use when the implementer touches many files.
-- **capable** — architecture, design, and review tasks. Use for spec and code quality reviewers.
+- **capable** — code quality review (architecture, design judgment, broad codebase understanding).
+- **standard** is correct for spec compliance review — it reads code and compares to spec, which does not require architectural judgment.
 
 Task complexity signals:
 - Touches 1-2 files with a complete spec → `cheap`
@@ -139,9 +143,9 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 All subagents are dispatched through `openrouter_agent.py` using the Bash tool. The general pattern:
 
 1. Write the prompt to a temp file using the Write tool or a heredoc.
-2. Run the agent script:
+2. Run the agent script from the skill directory:
    ```bash
-   uv run skills/subagent-driven-development/openrouter_agent.py \
+   cd [skill-base-dir] && uv run openrouter_agent.py \
      --model <role> \
      --prompt-file /tmp/subagent-prompt.txt \
      --working-dir <project-root>

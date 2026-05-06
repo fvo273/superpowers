@@ -14,7 +14,7 @@ Bash tool — dispatch via OpenRouter:
 2. Run the subagent (use `standard` role):
 
    ```bash
-   uv run skills/subagent-driven-development/openrouter_agent.py \
+   cd [skill-base-dir] && uv run openrouter_agent.py \
      --model standard \
      --prompt-file /tmp/subagent-spec-reviewer-prompt.txt \
      --working-dir [project-root]

@@ -14,7 +14,7 @@ Bash tool — dispatch via OpenRouter:
    - `standard`: multi-file integration, debugging, coordination
 
    ```bash
-   uv run skills/subagent-driven-development/openrouter_agent.py \
+   cd [skill-base-dir] && uv run openrouter_agent.py \
      --model cheap \
      --prompt-file /tmp/subagent-implementer-prompt.txt \
      --working-dir [project-root]
@@ -41,7 +41,7 @@ Prompt content:
     - Dependencies or assumptions
     - Anything unclear in the task description
 
-    **Ask them now.** Raise any concerns before starting work.
+    **Do not proceed.** Report status NEEDS_CONTEXT and list your questions. The controller will provide answers and re-dispatch you.
 
     ## Your Job
 
@@ -55,8 +55,7 @@ Prompt content:
 
     Work from: [directory]
 
-    **While you work:** If you encounter something unexpected or unclear, **ask questions**.
-    It's always OK to pause and clarify. Don't guess or make assumptions.
+    **While you work:** If you encounter something unexpected or unclear, stop and report NEEDS_CONTEXT with specific questions. Don't guess or make assumptions — your output is the only channel back to the controller.
 
     ## Code Organization
 

@@ -9,7 +9,7 @@ Use this template when dispatching a code quality reviewer subagent.
 ```
 Bash tool — dispatch via OpenRouter:
 
-1. Read the full content of `skills/requesting-code-review/code-reviewer.md` and use it as your prompt template.
+1. Read the full content of `[skill-base-dir]/../requesting-code-review/code-reviewer.md` and use it as your prompt template.
 
 2. Write the filled-in prompt to a temp file:
 
@@ -18,7 +18,7 @@ Bash tool — dispatch via OpenRouter:
 3. Run the subagent (use `capable` role):
 
    ```bash
-   uv run skills/subagent-driven-development/openrouter_agent.py \
+   cd [skill-base-dir] && uv run openrouter_agent.py \
      --model capable \
      --prompt-file /tmp/subagent-quality-reviewer-prompt.txt \
      --working-dir [project-root]
