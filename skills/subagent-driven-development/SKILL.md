@@ -24,7 +24,7 @@ Before using this skill, configure OpenRouter:
      "capable": "deepseek/deepseek-v4-flash"
    }
    ```
-3. **Python dependency:** `pip install openai` (or `uv add openai`).
+3. **Python dependency:** already declared in `pyproject.toml`. Run `uv sync` in `skills/subagent-driven-development/` to install.
 
 If either the API key or config file is missing, the skill stops immediately with an error and setup instructions. Customise models per role by editing the config file — any model available on OpenRouter that supports tool calling works.
 
@@ -141,7 +141,7 @@ All subagents are dispatched through `openrouter_agent.py` using the Bash tool. 
 1. Write the prompt to a temp file using the Write tool or a heredoc.
 2. Run the agent script:
    ```bash
-   python skills/subagent-driven-development/openrouter_agent.py \
+   uv run skills/subagent-driven-development/openrouter_agent.py \
      --model <role> \
      --prompt-file /tmp/subagent-prompt.txt \
      --working-dir <project-root>
@@ -152,6 +152,8 @@ See the prompt template files for full prompt content per role:
 - `./implementer-prompt.md` — role: `cheap` or `standard`
 - `./spec-reviewer-prompt.md` — role: `standard`
 - `./code-quality-reviewer-prompt.md` — role: `capable`
+
+On re-review after fixes, use the same role as the initial dispatch.
 
 ## Example Workflow
 
