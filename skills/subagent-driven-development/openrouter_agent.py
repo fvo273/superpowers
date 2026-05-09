@@ -310,6 +310,10 @@ def run_agent(client, model: str, prompt: str, working_dir: str) -> str:
 
 
 def main() -> None:
+    # Ensure UTF-8 stdout on Windows (avoids cp1251 crash on emoji) and disable
+    # buffering so output is visible immediately when piped to a file.
+    sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
+
     parser = argparse.ArgumentParser(description="Run a subagent task via OpenRouter")
     parser.add_argument("--model", required=True, choices=sorted(VALID_ROLES), help="Model role: cheap, standard, or capable")
     parser.add_argument("--prompt-file", required=True, help="Path to file containing the subagent prompt")

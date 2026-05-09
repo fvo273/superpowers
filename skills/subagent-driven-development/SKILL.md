@@ -145,12 +145,19 @@ All subagents are dispatched through `openrouter_agent.py` using the Bash tool. 
 1. Write the prompt to a temp file using the Write tool or a heredoc.
 2. Run the agent script from the skill directory:
    ```bash
-   cd [skill-base-dir] && uv run openrouter_agent.py \
+   cd [skill-base-dir] && PYTHONIOENCODING=utf-8 PYTHONUNBUFFERED=1 uv run openrouter_agent.py \
      --model <role> \
      --prompt-file /tmp/subagent-prompt.txt \
      --working-dir <project-root>
    ```
+   On Windows PowerShell, set env vars before the command:
+   ```powershell
+   $env:PYTHONIOENCODING = "utf-8"
+   $env:PYTHONUNBUFFERED = "1"
+   cd [skill-base-dir]; uv run openrouter_agent.py --model <role> --prompt-file /tmp/subagent-prompt.txt --working-dir <project-root>
+   ```
 3. Read stdout as the subagent's final report.
+4. **TaskOutput timeout:** a timeout from `TaskOutput` means the subagent is still running — not that it failed. Call `TaskOutput` again (use `timeout: 600000` for `capable`-model tasks, which can legitimately need 5–8 minutes). Do not spawn a duplicate task.
 
 See the prompt template files for full prompt content per role:
 - `./implementer-prompt.md` — role: `cheap` or `standard`
@@ -298,6 +305,13 @@ Done!
 **If subagent fails task:**
 - Dispatch fix subagent with specific instructions
 - Don't try to fix manually (context pollution)
+
+**If dispatch itself fails (openrouter_agent.py crashes or produces no output):**
+- **STOP. Do not implement tasks directly in your session.** Bypassing the dispatch mechanism defeats the entire skill — you accumulate context across tasks, skip quality gates, and invalidate every advantage listed above.
+- Diagnose the dispatch failure first (treat it as a bug: read the error, reproduce it, find the root cause).
+- Fix the script or the environment, then resume the subagent loop.
+- If you cannot fix it, escalate to your human partner with a clear description of the failure — do not silently fall back to manual execution.
+- The rationalisation "I can't dispatch so I'll implement directly" is always wrong.
 
 ## Integration
 
