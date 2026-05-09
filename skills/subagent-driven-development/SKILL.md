@@ -306,6 +306,13 @@ Done!
 - Dispatch fix subagent with specific instructions
 - Don't try to fix manually (context pollution)
 
+**If dispatch itself fails (openrouter_agent.py crashes or produces no output):**
+- **STOP. Do not implement tasks directly in your session.** Bypassing the dispatch mechanism defeats the entire skill — you accumulate context across tasks, skip quality gates, and invalidate every advantage listed above.
+- Diagnose the dispatch failure first (treat it as a bug: read the error, reproduce it, find the root cause).
+- Fix the script or the environment, then resume the subagent loop.
+- If you cannot fix it, escalate to your human partner with a clear description of the failure — do not silently fall back to manual execution.
+- The rationalisation "I can't dispatch so I'll implement directly" is always wrong.
+
 ## Integration
 
 **Required workflow skills:**
