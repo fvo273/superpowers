@@ -145,12 +145,19 @@ All subagents are dispatched through `openrouter_agent.py` using the Bash tool. 
 1. Write the prompt to a temp file using the Write tool or a heredoc.
 2. Run the agent script from the skill directory:
    ```bash
-   cd [skill-base-dir] && uv run openrouter_agent.py \
+   cd [skill-base-dir] && PYTHONIOENCODING=utf-8 PYTHONUNBUFFERED=1 uv run openrouter_agent.py \
      --model <role> \
      --prompt-file /tmp/subagent-prompt.txt \
      --working-dir <project-root>
    ```
+   On Windows PowerShell, set env vars before the command:
+   ```powershell
+   $env:PYTHONIOENCODING = "utf-8"
+   $env:PYTHONUNBUFFERED = "1"
+   cd [skill-base-dir]; uv run openrouter_agent.py --model <role> --prompt-file /tmp/subagent-prompt.txt --working-dir <project-root>
+   ```
 3. Read stdout as the subagent's final report.
+4. **TaskOutput timeout:** a timeout from `TaskOutput` means the subagent is still running — not that it failed. Call `TaskOutput` again (use `timeout: 600000` for `capable`-model tasks, which can legitimately need 5–8 minutes). Do not spawn a duplicate task.
 
 See the prompt template files for full prompt content per role:
 - `./implementer-prompt.md` — role: `cheap` or `standard`
