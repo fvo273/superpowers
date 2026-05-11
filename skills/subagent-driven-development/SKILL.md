@@ -120,6 +120,11 @@ Task complexity signals:
 - Touches multiple files with integration concerns → `standard`
 - Requires design judgment or broad codebase understanding → `capable`
 
+**Keyword bias toward `standard`:** If the task description contains any of the following words, use `standard` instead of `cheap` even for seemingly simple tasks — cheap models demonstrably miss safety-critical details in these areas, leading to expensive fix cycles:
+`error handling`, `production`, `operator`, `CLI`, `exception`, `retry`, `fallback`, `attribute`, `flag`, `argument`
+
+**Rationale:** A cheap implementer that requires 3 fix-cycle iterations costs more than a standard implementer that gets it right in one pass. When in doubt, bias toward `standard`.
+
 ## Handling Implementer Status
 
 Implementer subagents report one of four statuses. Handle each appropriately:
